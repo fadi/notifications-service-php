@@ -63,8 +63,10 @@ curl -X POST "https://your-host/index.php/send" \
       "product":"Health Matters"
     }
   }'
-
+```
 # Send Notification - Example Response
+
+```
 
   {
   "status": "success",
@@ -78,11 +80,14 @@ curl -X POST "https://your-host/index.php/send" \
     "created_at": "2026-02-09T22:55:29+00:00"
   }
 }
+
 # Health Check
 
-Used by tutors, testers, and other modules to verify the service is alive.
+Verify the service is alive:
 
+```
 curl https://vesta.uclan.ac.uk/~fatieh/jaffa/index.php/health
+```
 
 # Response:
 
