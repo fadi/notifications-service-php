@@ -34,7 +34,7 @@ Example deployed path:
 
 ```
 https://vesta.uclan.ac.uk/~YOURUSER/jaffa/index.php/health
-
+```
 What This Service Does
 
 Other modules can send a notification by making one HTTP request.
