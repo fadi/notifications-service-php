@@ -1,4 +1,3 @@
-# notifications-service-php
 Student Project for the Health Matters CMS system
 
 # Notification Service API (PHP + MariaDB)
@@ -19,7 +18,7 @@ Supports:
 - UUID notification IDs
 - Audit trail in database
 
-Built as a **single-file deployable service** for easy hosting on shared university servers.
+Built as a single-file deployable service for easy hosting on shared university servers.
 
 ---
 
@@ -51,7 +50,7 @@ The service will:
 This keeps notification logic centralised instead of duplicated across modules.
 
 ```
-# Send Notification — Example Request
+# Send Notification - Example Request
 
 curl -X POST "https://your-host/index.php/send" \
   -H "Content-Type: application/json" \
@@ -65,7 +64,7 @@ curl -X POST "https://your-host/index.php/send" \
     }
   }'
 
-# Send Notification — Example Response
+# Send Notification - Example Response
 
   {
   "status": "success",
@@ -79,13 +78,13 @@ curl -X POST "https://your-host/index.php/send" \
     "created_at": "2026-02-09T22:55:29+00:00"
   }
 }
-#Health Check
+# Health Check
 
 Used by tutors, testers, and other modules to verify the service is alive.
 
-curl https://your-host/index.php/health
+curl https://vesta.uclan.ac.uk/~fatieh/jaffa/index.php/health
 
-Response:
+# Response:
 
 {
   "status": "healthy",
@@ -94,13 +93,113 @@ Response:
   "mailgun_configured": false
 }
 
-#Authentication
+# Authentication
 
 Requests must include:
 
-X-API-Key: YOUR_SECRET_KEY
+X-API-Key: 7f3c9a4e8b1d2f6a0c5e3b9d7a2c1e8f4b6d0a3c9e1b”
 
 Configured in code or via environment variable:
 
+API_KEY=7f3c9a4e8b1d2f6a0c5e3b9d7a2c1e8f4b6d0a3c9e1b”
+
+Prevents other users on shared hosting from abusing the endpoint.
+
+# Configuration
+
+'db_dsn'
+'db_user'
+'db_pass'
+'api_key'
+'mailgun_api_key'
+'mailgun_domain'
+
+Environment variables are supported but not required.
+
+# Database Schema (MariaDB / MySQL)
+
+Notifications: 
+
+CREATE TABLE notifications (
+  notification_id CHAR(36) PRIMARY KEY,
+  event_type VARCHAR(100) NOT NULL,
+  channel VARCHAR(20) NOT NULL,
+  user_id CHAR(36) NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  message TEXT NOT NULL,
+  sent_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+recipient_preferences: 
+
+CREATE TABLE recipient_preferences (
+  recipient_id VARCHAR(255) PRIMARY KEY,
+  email VARCHAR(255),
+  preferred_channel VARCHAR(50) DEFAULT 'Email'
+);
+
+Template System:
+
+'templates' => [
+  'welcome' => 'Hi {{ name }}, welcome to {{ product }}!',
+]
+
+Variables are injected safely with HTML escaping.
+
+# Email Sending
+
+MAILGUN_API_KEY
+MAILGUN_DOMAIN
+
+If not configured:
+	•	Email sending is skipped
+	•	Notification remains queued
+	•	Demo still works
+	•	No external dependency required for marking
+
+# SMS & Push
+
+Currently simulated (logged only):
+	•	No third-party SMS gateway required
+	•	Demonstrates channel routing logic
+	•	Easy to replace with real provider later
+
+#Architecture
+
+Client Module
+   ↓
+POST /send
+   ↓
+NotificationService
+   ↓
+Template Engine
+   ↓
+Database Audit Log
+   ↓
+Channel Dispatcher
+   ↓
+Email / SMS / Push
+
+Single responsibility classes:
+	•	Database
+	•	TemplateEngine
+	•	MailgunSender
+	•	NotificationService
+	•	RateLimiter
+	•	Validator
+	•	Logger
+
+# PostgreSQL Compatibility
+
+Code uses PDO.
+
+To switch to PostgreSQL:
+
+Change DSN only:
+
+pgsql:host=HOST;dbname=DB
+
+No API changes required.
 
 
