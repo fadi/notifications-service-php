@@ -61,7 +61,7 @@ POST:
 Example:
 
 ```bash
-curl -X POST https://vesta.uclan.ac.uk/~fatieh/jaffa/index.php/send" \
+curl -X POST "https://vesta.uclan.ac.uk/~fatieh/jaffa/index.php/send" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: 7f3c9a4e8b1d2f6a0c5e3b9d7a2c1e8f4b6d0a3c9e1b" \
   -d '{
