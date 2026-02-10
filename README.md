@@ -34,7 +34,7 @@ GET:
 Example:
 
 ```bash
-curl https://vesta.uclan.ac.uk/~YOURUSER/jaffa/index.php/health
+https://vesta.uclan.ac.uk/~fatieh/jaffa/index.php/health
 ```
 
 Response:
@@ -63,7 +63,7 @@ Example:
 ```bash
 curl -X POST "https://your-host/index.php/send" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: YOUR_API_KEY" \
+  -H "X-API-Key: 7f3c9a4e8b1d2f6a0c5e3b9d7a2c1e8f4b6d0a3c9e1b" \
   -d '{
     "recipient_id": "11111111-1111-1111-1111-111111111111",
     "template_name": "welcome",
@@ -98,7 +98,7 @@ Response:
 All POST requests require:
 
 ```
-X-API-Key: YOUR_API_KEY
+X-API-Key: 7f3c9a4e8b1d2f6a0c5e3b9d7a2c1e8f4b6d0a3c9e1b
 ```
 
 Configured via environment variable or config array.
@@ -130,13 +130,64 @@ CREATE TABLE recipient_preferences (
 
 ---
 
-## Templates
+## Available Templates
+
+The service uses named templates.  
+Clients must provide a valid `template_name` and the required variables.
+
+If a template does not exist, the API returns **404 Template not found**.
+
+### welcome
+
+**Variables required:**
+- `name`
+- `product`
+
+**Message:**
+```
+Hi {{ name }}, welcome to {{ product }}!
+```
+
+---
+
+### reset_password
+
+**Variables required:**
+- `name`
+- `code`
+
+**Message:**
+```
+Hello {{ name }}, reset your password using this code: {{ code }}
+```
+
+---
+
+### invoice_ready
+
+**Variables required:**
+- `name`
+- `invoice_id`
+- `total`
+
+**Message:**
+```
+Hi {{ name }}, your invoice {{ invoice_id }} is ready. Total: {{ total }}
+```
+
+---
+
+### Adding Templates
+
+Templates are defined in the configuration section:
 
 ```php
 'templates' => [
-  'welcome' => 'Hi {{ name }}, welcome to {{ product }}!'
+  'example' => 'Your message with {{ variable }}'
 ]
 ```
+
+No API changes are required to add new templates.
 
 ---
 
