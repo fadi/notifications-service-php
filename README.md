@@ -196,8 +196,8 @@ No API changes are required to add new templates.
 Mailgun supported via:
 
 ```
-MAILGUN_API_KEY
-MAILGUN_DOMAIN
+MAILGUN_API_KEY (TBC)
+MAILGUN_DOMAIN (TBC)
 ```
 
 If not configured, messages remain queued (demo mode).
