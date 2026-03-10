@@ -1,0 +1,12 @@
+.env
+*.env.local
+*.log
+notifications.log
+/vendor/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+.htaccess
