@@ -50,17 +50,3 @@ INSERT IGNORE INTO recipient_preferences (recipient_id, email, preferred_channel
   ('user123', 'test@example.com', 'Email'),
   ('user456', 'john@example.com', 'SMS'),
   ('user789', 'jane@example.com', 'Push');
-F
-cat > composer.json << 'EOF'
-{
-    "name": "fadi/notifications-service-php",
-    "description": "Lightweight PHP notification service API with Mailgun email, SMS and push support",
-    "type": "project",
-    "license": "MIT",
-    "require": {
-        "php": ">=8.1"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^10"
-    }
-}

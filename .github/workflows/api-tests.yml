@@ -1,0 +1,132 @@
+name: API Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  api:
+    name: Live API Smoke Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: notifications_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -u root -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: pdo, pdo_mysql, curl
+
+      - name: Apply database schema
+        run: mysql -h 127.0.0.1 -u root -proot notifications_test < schema.sql
+
+      - name: Create .env
+        run: |
+          cat > .env << 'EOF'
+          DB_DSN=mysql:host=127.0.0.1;port=3306;dbname=notifications_test
+          DB_USER=root
+          DB_PASS=root
+          API_KEY=test-api-key-12345
+          APP_DEBUG=false
+          EOF
+
+      - name: Start PHP built-in server
+        run: php -S localhost:8000 index.php &> /tmp/php-server.log &
+
+      - name: Wait for server to be ready
+        run: |
+          for i in {1..10}; do
+            curl -s http://localhost:8000/health && break || sleep 1
+          done
+
+      - name: "GET /health — expect healthy status"
+        run: |
+          echo "--- Request ---"
+          echo "GET http://localhost:8000/health"
+          echo ""
+          echo "--- Response ---"
+          RESPONSE=$(curl -s http://localhost:8000/health)
+          echo "$RESPONSE" | jq .
+          echo ""
+          STATUS=$(echo "$RESPONSE" | jq -r '.status')
+          [ "$STATUS" = "healthy" ] && echo "PASS: status is healthy" || (echo "FAIL: expected healthy, got $STATUS" && exit 1)
+
+      - name: "POST /send — send welcome notification (queued)"
+        run: |
+          echo "--- Request ---"
+          echo "POST http://localhost:8000/send"
+          echo '{"recipient_id":"user123","template_name":"welcome","variable_data":{"name":"Alice","product":"Health Matters"}}'
+          echo ""
+          echo "--- Response ---"
+          RESPONSE=$(curl -s -X POST http://localhost:8000/send \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: test-api-key-12345" \
+            -d '{"recipient_id":"user123","template_name":"welcome","variable_data":{"name":"Alice","product":"Health Matters"}}')
+          echo "$RESPONSE" | jq .
+          echo ""
+          STATUS=$(echo "$RESPONSE" | jq -r '.status')
+          [ "$STATUS" = "success" ] && echo "PASS: notification accepted" || (echo "FAIL: expected success, got $STATUS" && exit 1)
+          NOTIF_STATUS=$(echo "$RESPONSE" | jq -r '.data.status')
+          echo "Notification status: $NOTIF_STATUS"
+
+      - name: "POST /send — reject missing API key (expect 401)"
+        run: |
+          echo "--- Request (no API key) ---"
+          echo ""
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/send \
+            -H "Content-Type: application/json" \
+            -d '{"recipient_id":"user123","template_name":"welcome","variable_data":{}}')
+          echo "HTTP status: $HTTP_CODE"
+          [ "$HTTP_CODE" = "401" ] && echo "PASS: unauthenticated request rejected" || (echo "FAIL: expected 401, got $HTTP_CODE" && exit 1)
+
+      - name: "POST /send — reject invalid payload (expect 400)"
+        run: |
+          echo "--- Request (missing template_name) ---"
+          echo ""
+          RESPONSE=$(curl -s -X POST http://localhost:8000/send \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: test-api-key-12345" \
+            -d '{"recipient_id":"user123"}')
+          echo "$RESPONSE" | jq .
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/send \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: test-api-key-12345" \
+            -d '{"recipient_id":"user123"}')
+          [ "$HTTP_CODE" = "400" ] && echo "PASS: invalid request rejected" || (echo "FAIL: expected 400, got $HTTP_CODE" && exit 1)
+
+      - name: "POST /send — reject unknown template (expect 404)"
+        run: |
+          echo "--- Request (unknown template) ---"
+          echo ""
+          RESPONSE=$(curl -s -X POST http://localhost:8000/send \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: test-api-key-12345" \
+            -d '{"recipient_id":"user123","template_name":"no_such_template","variable_data":{}}')
+          echo "$RESPONSE" | jq .
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/send \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: test-api-key-12345" \
+            -d '{"recipient_id":"user123","template_name":"no_such_template","variable_data":{}}')
+          [ "$HTTP_CODE" = "404" ] && echo "PASS: unknown template correctly returns 404" || (echo "FAIL: expected 404, got $HTTP_CODE" && exit 1)
+
+      - name: Show PHP server log
+        if: always()
+        run: cat /tmp/php-server.log || true
